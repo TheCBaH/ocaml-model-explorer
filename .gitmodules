@@ -1,0 +1,3 @@
+[submodule "vendored/model-explorer"]
+	path = model-explorer
+	url = https://github.com/google-ai-edge/model-explorer.git
