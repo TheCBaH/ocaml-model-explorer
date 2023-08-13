@@ -1,0 +1,37 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+    - name: devcontainer
+      uses: ./.github/workflows/actions/devcontainer
+      id: devcontainer
+    - name: setup
+      run: |
+        echo 'EXEC=${{ steps.devcontainer.outputs.exec }}' >> $GITHUB_ENV
+    - name: Build
+      run:  ${{ env.EXEC }} make build
+    - name: Run tests
+      run:  ${{ env.EXEC }} make runtest
+    - name: Format
+      run:  ${{ env.EXEC }} make format
+    - name: Install dependencies
+      run:  ${{ env.EXEC }} npm ci
+    - name: Run Playwright tests
+      run:  ${{ env.EXEC }} npx playwright test
+    - uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() && failure() }}
+      with:
+        name: test-results
+        path: test-results/
+        retention-days: 30
