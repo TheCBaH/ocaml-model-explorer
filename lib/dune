@@ -1,4 +1,5 @@
 (library
  (name model_explorer)
+ (public_name model_explorer)
  (wrapped false)
  (libraries jsont))
