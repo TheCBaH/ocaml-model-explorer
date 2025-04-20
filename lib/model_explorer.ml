@@ -1,9 +1,16 @@
+(* based on src/ui/src/components/visualizer/common/types.ts *)
 (** An object with "key" and "value" field. *)
 module KeyValue = struct
   type t = { key : string;  (** The key. *) value : string  (** The value. *) }
 
   let make key value = { key; value }
+
+  (** [create ~key ~value] creates a new key-value pair.
+      @param key The key.
+      @param value The value.
+      @return A new key-value pair. *)
   let create ~key ~value = make key value
+
   let key t = t.key
   let value t = t.value
 
@@ -21,6 +28,8 @@ module KeyValueList = struct
   let jsont = Jsont.list KeyValue.jsont
 end
 
+(* based on src/ui/src/components/visualizer/common/types.ts *)
+
 (** An item in input/output metadata. *)
 module MetadataItem = struct
   type t = {
@@ -29,7 +38,13 @@ module MetadataItem = struct
   }
 
   let make id attrs = { id; attrs }
+
+  (** [create ~id ~attrs] creates a new metadata item.
+      @param id The id of the metadata item.
+      @param attrs Attributes associated with the metadata item.
+      @return A new metadata item. *)
   let create ~id ~attrs = make id attrs
+
   let id t = t.id
   let attrs t = t.attrs
 
@@ -61,6 +76,12 @@ module IncomingEdge = struct
   let make sourceNodeId sourceNodeOutputId targetNodeInputId metadata =
     { sourceNodeId; sourceNodeOutputId; targetNodeInputId; metadata }
 
+  (** [create ~sourceNodeId ~sourceNodeOutputId ~targetNodeInputId ?metadata ()] creates a new incoming edge.
+      @param sourceNodeId The id of the source node (where the edge comes from).
+      @param sourceNodeOutputId The id of the output from the source node that this edge goes out of.
+      @param targetNodeInputId The id of the input from the target node (this node) that this edge connects to.
+      @param metadata Other associated metadata for this edge.
+      @return A new incoming edge. *)
   let create ~sourceNodeId ~sourceNodeOutputId ~targetNodeInputId ?metadata () =
     make sourceNodeId sourceNodeOutputId targetNodeInputId metadata
 
@@ -89,7 +110,14 @@ module GraphNodeStyle = struct
   }
 
   let make backgroundColor borderColor hoveredBorderColor = { backgroundColor; borderColor; hoveredBorderColor }
+
+  (** [create ?backgroundColor ?borderColor ?hoveredBorderColor ()] creates a new graph node style.
+      @param backgroundColor The background color of the node. It should be in css format.
+      @param borderColor The border color of the node. It should be in css format.
+      @param hoveredBorderColor The border color of the node when it is hovered. It should be in css format.
+      @return A new graph node style. *)
   let create ?backgroundColor ?borderColor ?hoveredBorderColor () = make backgroundColor borderColor hoveredBorderColor
+
   let backgroundColor t = t.backgroundColor
   let borderColor t = t.borderColor
   let hoveredBorderColor t = t.hoveredBorderColor
@@ -107,7 +135,12 @@ module GraphNodeConfig = struct
   type t = { pinToGroupTop : bool option  (** Whether to pin the node to the top of the group it belongs to. *) }
 
   let make pinToGroupTop = { pinToGroupTop }
+
+  (** [create ?pinToGroupTop ()] creates a new graph node config.
+      @param pinToGroupTop Whether to pin the node to the top of the group it belongs to.
+      @return A new graph node config. *)
   let create ?pinToGroupTop () = make pinToGroupTop
+
   let pinToGroupTop t = t.pinToGroupTop
 
   let jsont =
@@ -140,6 +173,24 @@ module GraphNode = struct
   let make id label namespace subgraphIds attrs incomingEdges inputsMetadata outputsMetadata style config =
     { id; label; namespace; subgraphIds; attrs; incomingEdges; inputsMetadata; outputsMetadata; style; config }
 
+  (** [create ~id ~label ~namespace ?subgraphIds ?attrs ?incomingEdges ?inputsMetadata ?outputsMetadata ?style ?config
+       ()] creates a new graph node.
+      @param id The unique id of the node.
+      @param label The label of the node, displayed on the node in the model graph.
+      @param namespace
+        The namespace/hierarchy data of the node in the form of a "path" (e.g. * a/b/c). Don't include the node label as
+        the last component of the * namespace. The visualizer will use this data to visualize nodes in a nested * way.
+      @param subgraphIds
+        Ids of subgraphs that this node goes into. The graphs referenced here should be the ones from the `graphs` field
+        in `GraphList`. Once set, users will be able to click this node, pick a subgraph from a drop-down list, and see
+        the visualization for the selected subgraph.
+      @param attrs The attributes of the node.
+      @param incomingEdges A list of incoming edges.
+      @param inputsMetadata Metadata for inputs.
+      @param outputsMetadata Metadata for outputs.
+      @param style The default style of the node.
+      @param config Custom configs for the node.
+      @return A new graph node. *)
   let create ~id ~label ~namespace ?subgraphIds ?attrs ?incomingEdges ?inputsMetadata ?outputsMetadata ?style ?config ()
       =
     make id label namespace subgraphIds attrs incomingEdges inputsMetadata outputsMetadata style config
@@ -182,6 +233,13 @@ module OutgoingEdge = struct
 
   let make targetNodeId sourceNodeOutputId targetNodeInputId metadata =
     { targetNodeId; sourceNodeOutputId; targetNodeInputId; metadata }
+
+  (** [create ~targetNodeId ~sourceNodeOutputId ~targetNodeInputId ?metadata ()] creates a new outgoing edge.
+      @param targetNodeId The id of the target node (where the edge connects to).
+      @param sourceNodeOutputId The id of the output from the source node that this edge goes out of.
+      @param targetNodeInputId The id of the input from the target node (this node) that this edge * connects to.
+      @param metadata Other associated metadata for this edge.
+      @return A new outgoing edge. *)
 
   let create ~targetNodeId ~sourceNodeOutputId ~targetNodeInputId ?metadata () =
     make targetNodeId sourceNodeOutputId targetNodeInputId metadata
@@ -241,6 +299,19 @@ module Graph = struct
   let create ~id ~nodes ?collectionLabel ?groupNodeAttributes ?subGraphIds ?parentGraphIds () =
     make id collectionLabel nodes groupNodeAttributes subGraphIds parentGraphIds
 
+  (** [create ~id ~nodes ?collectionLabel ?groupNodeAttributes ?subGraphIds ?parentGraphIds ()] creates a new graph.
+      @param id The id of the graph.
+      @param nodes A list of nodes in the graph.
+      @param collectionLabel The label of the collection this graph belongs to. This field will be set internally.
+      @param groupNodeAttributes Attributes for group nodes. Displayed in the side panel when the group is selected.
+      @param subGraphIds The ids of all its subgraphs.
+      @param parentGraphIds The ids of its parent graphs.
+      @return A new graph.
+
+      The following fields are set by model explorer internally.
+      - subGraphIds : The ids of all its subgraphs.
+      - parentGraphIds : The ids of its parent graphs. *)
+
   let id t = t.id
   let collectionLabel t = t.collectionLabel
   let nodes t = t.nodes
@@ -264,7 +335,13 @@ module GraphWithLevel = struct
   type t = { graph : Graph.t;  (** The graph object. *) level : int  (** The level of the graph in the hierarchy. *) }
 
   let make graph level = { graph; level }
+
+  (** [create ~graph ~level] creates a new graph with level.
+      @param graph The graph object.
+      @param level The level of the graph in the hierarchy.
+      @return A new graph with level. *)
   let create ~graph ~level = make graph level
+
   let graph t = t.graph
   let level t = t.level
 
@@ -280,19 +357,22 @@ module GraphCollection = struct
   type t = {
     label : string;  (** The label of the collection. *)
     graphs : Graph.t list;  (** The graphs inside the collection. *)
-    graphsWithLevel : GraphWithLevel.t list option;  (** Graphs with level info, set internally by Model Explorer. *)
   }
 
-  let make label graphs graphsWithLevel = { label; graphs; graphsWithLevel }
-  let create ~label ~graphs ?graphsWithLevel () = make label graphs graphsWithLevel
+  let make label graphs = { label; graphs }
+
+  (** [create ~label ~graphs ?graphsWithLevel ()] creates a new graph collection.
+      @param label The label of the collection.
+      @param graphs The graphs inside the collection.
+      @return A new graph collection. *)
+  let create ~label ~graphs = make label graphs
+
   let label t = t.label
   let graphs t = t.graphs
-  let graphsWithLevel t = t.graphsWithLevel
 
   let jsont =
     Jsont.Object.map ~kind:"GraphCollection" make
     |> Jsont.Object.mem "label" Jsont.string ~enc:label
     |> Jsont.Object.mem "graphs" (Jsont.list Graph.jsont) ~enc:graphs
-    |> Jsont.Object.opt_mem "graphsWithLevel" (Jsont.list GraphWithLevel.jsont) ~enc:graphsWithLevel
     |> Jsont.Object.finish
 end

@@ -310,7 +310,7 @@ let%expect_test "graphWithLevel" =
 let%expect_test "graphCollection minimal" =
   let nodes = [ GraphNode.create ~id:"node1" ~label:"Node One" ~namespace:"a/b" () ] in
   let graph = Graph.create ~id:"graph1" ~nodes () in
-  let collection = GraphCollection.create ~label:"My Collection" ~graphs:[ graph ] () in
+  let collection = GraphCollection.create ~label:"My Collection" ~graphs:[ graph ] in
   let json = Result.get_ok @@ encode_string ~format:Jsont.Indent GraphCollection.jsont collection in
   print_string json;
   [%expect
@@ -337,12 +337,7 @@ let%expect_test "graphCollection with optional fields" =
   let graph1 = Graph.create ~id:"graph1" ~nodes:nodes1 () in
   let nodes2 = [ GraphNode.create ~id:"node2" ~label:"Node Two" ~namespace:"c" () ] in
   let graph2 = Graph.create ~id:"graph2" ~nodes:nodes2 () in
-  let graphWithLevel1 = GraphWithLevel.create ~graph:graph1 ~level:0 in
-  let graphWithLevel2 = GraphWithLevel.create ~graph:graph2 ~level:1 in
-  let collection =
-    GraphCollection.create ~label:"My Collection 2" ~graphs:[ graph1; graph2 ]
-      ~graphsWithLevel:[ graphWithLevel1; graphWithLevel2 ] ()
-  in
+  let collection = GraphCollection.create ~label:"My Collection 2" ~graphs:[ graph1; graph2 ] in
   let json = Result.get_ok @@ encode_string ~format:Jsont.Indent GraphCollection.jsont collection in
   print_string json;
   [%expect
@@ -369,34 +364,6 @@ let%expect_test "graphCollection with optional fields" =
               "namespace": "c"
             }
           ]
-        }
-      ],
-      "graphsWithLevel": [
-        {
-          "graph": {
-            "id": "graph1",
-            "nodes": [
-              {
-                "id": "node1",
-                "label": "Node One",
-                "namespace": "a/b"
-              }
-            ]
-          },
-          "level": 0
-        },
-        {
-          "graph": {
-            "id": "graph2",
-            "nodes": [
-              {
-                "id": "node2",
-                "label": "Node Two",
-                "namespace": "c"
-              }
-            ]
-          },
-          "level": 1
         }
       ]
     } |}];
