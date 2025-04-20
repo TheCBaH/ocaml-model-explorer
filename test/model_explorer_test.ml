@@ -284,29 +284,6 @@ let%expect_test "graph with optional fields" =
     } |}];
   ()
 
-let%expect_test "graphWithLevel" =
-  let nodes = [ GraphNode.create ~id:"node1" ~label:"Node One" ~namespace:"a/b" () ] in
-  let graph = Graph.create ~id:"graph1" ~nodes () in
-  let graphWithLevel = GraphWithLevel.create ~graph ~level:1 in
-  let json = Result.get_ok @@ encode_string ~format:Jsont.Indent GraphWithLevel.jsont graphWithLevel in
-  print_string json;
-  [%expect
-    {|
-    {
-      "graph": {
-        "id": "graph1",
-        "nodes": [
-          {
-            "id": "node1",
-            "label": "Node One",
-            "namespace": "a/b"
-          }
-        ]
-      },
-      "level": 1
-    } |}];
-  ()
-
 let%expect_test "graphCollection minimal" =
   let nodes = [ GraphNode.create ~id:"node1" ~label:"Node One" ~namespace:"a/b" () ] in
   let graph = Graph.create ~id:"graph1" ~nodes () in

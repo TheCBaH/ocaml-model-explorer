@@ -330,28 +330,6 @@ module Graph = struct
     |> Jsont.Object.finish
 end
 
-(** A graph with its level, used in the graph selector. *)
-module GraphWithLevel = struct
-  type t = { graph : Graph.t;  (** The graph object. *) level : int  (** The level of the graph in the hierarchy. *) }
-
-  let make graph level = { graph; level }
-
-  (** [create ~graph ~level] creates a new graph with level.
-      @param graph The graph object.
-      @param level The level of the graph in the hierarchy.
-      @return A new graph with level. *)
-  let create ~graph ~level = make graph level
-
-  let graph t = t.graph
-  let level t = t.level
-
-  let jsont =
-    Jsont.Object.map ~kind:"GraphWithLevel" make
-    |> Jsont.Object.mem "graph" Graph.jsont ~enc:graph
-    |> Jsont.Object.mem "level" Jsont.int ~enc:level
-    |> Jsont.Object.finish
-end
-
 (** A collection of graphs. This is the input to the visualizer. *)
 module GraphCollection = struct
   type t = {
@@ -361,7 +339,7 @@ module GraphCollection = struct
 
   let make label graphs = { label; graphs }
 
-  (** [create ~label ~graphs ?graphsWithLevel ()] creates a new graph collection.
+  (** [create ~label ~graphs] creates a new graph collection.
       @param label The label of the collection.
       @param graphs The graphs inside the collection.
       @return A new graph collection. *)
