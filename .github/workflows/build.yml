@@ -29,7 +29,7 @@ jobs:
       run:  ${{ env.EXEC }} npm ci
     - name: Run Playwright tests
       run:  ${{ env.EXEC }} npx playwright test
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       if: ${{ !cancelled() && failure() }}
       with:
         name: test-results
