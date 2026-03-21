@@ -1,24 +1,31 @@
 {
-  "name": "ocaml-ggml",
+  "name": "ocaml-model-explorer",
   "version": "1.0.0",
-  "description": "[![OCaml GGML bindings](https://github.com/TheCBaH/ocaml-ggml/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/TheCBaH/ocaml-ggmk/actions/workflows/build.yml)",
+  "description": "OCaml mapping of graph definition used by the model-explorer",
   "main": "index.js",
   "directories": {
     "lib": "lib",
     "test": "test"
   },
-  "scripts": {},
+  "scripts": {
+    "test": "npx playwright test"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TheCBaH/ocaml-ggml.git"
+    "url": "git+https://github.com/TheCBaH/ocaml-model-explorer.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "ocaml",
+    "model-explorer",
+    "bindings",
+    "graph"
+  ],
+  "author": "TheCBaH",
+  "license": "MIT",
   "bugs": {
-    "url": "https://github.com/TheCBaH/ocaml-ggml/issues"
+    "url": "https://github.com/TheCBaH/ocaml-model-explorer/issues"
   },
-  "homepage": "https://github.com/TheCBaH/ocaml-ggml#readme",
+  "homepage": "https://github.com/TheCBaH/ocaml-model-explorer#readme",
   "devDependencies": {
     "@playwright/test": "^1.51.1",
     "@types/node": "^22.14.1"

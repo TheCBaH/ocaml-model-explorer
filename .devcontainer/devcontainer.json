@@ -15,9 +15,8 @@
         "./features/ocaml": {
             "packages": "bytesrw jsont ppx_expect utop ppx_expect"
         },
-        "ghcr.io/devcontainers/features/node:1": {},
-        "./features/playwright": {
-            "browsers": "chromium"
+        "./features/npm": {
+            "playwright": true
         }
     },
     "customizations": {
