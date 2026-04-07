@@ -10,9 +10,9 @@
             "description": "Space-separated list of npm packages to install globally"
         },
         "playwright": {
-            "type": "boolean",
-            "default": false,
-            "description": "Install Playwright with Chromium for browser testing"
+            "type": "string",
+            "default": "",
+            "description": "Playwright version to install with Chromium (e.g. '1.58.2'). Empty string disables installation."
         }
     },
     "installsAfter": [

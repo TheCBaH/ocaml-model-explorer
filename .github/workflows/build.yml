@@ -27,6 +27,8 @@ jobs:
       run:  ${{ env.EXEC }} make format
     - name: Install dependencies
       run:  ${{ env.EXEC }} npm ci
+    - name: Check Playwright version
+      run:  ${{ env.EXEC }} make playwright-check
     - name: Run Playwright tests
       run:  ${{ env.EXEC }} npx playwright test
     - uses: actions/upload-artifact@v7

@@ -16,7 +16,7 @@
             "packages": "bytesrw jsont ppx_expect utop ppx_expect"
         },
         "./features/npm": {
-            "playwright": true
+            "playwright": "1.59.1"
         }
     },
     "customizations": {

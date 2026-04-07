@@ -16,8 +16,8 @@ if [ -n "${PACKAGES:-}" ]; then
     npm install -g $PACKAGES
 fi
 
-if [ "${PLAYWRIGHT:-false}" = "true" ]; then
-    npm install -g playwright
+if [ -n "${PLAYWRIGHT:-}" ]; then
+    npm install -g playwright@${PLAYWRIGHT}
     export PLAYWRIGHT_BROWSERS_PATH=/usr/local/ms-playwright
     npx playwright install --with-deps chromium
     chmod -R o+rx $PLAYWRIGHT_BROWSERS_PATH

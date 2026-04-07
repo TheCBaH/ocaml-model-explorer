@@ -25,7 +25,10 @@ utop:
 clean:
 	opam exec dune $@
 
-.PHONY: default clean format run top utop
+playwright-check:
+	${CURDIR}/scripts/playwright-check.sh
+
+.PHONY: default clean format run top utop playwright-check
 
 server.model-explorer.js:
 	cd model-explorer/src/custom_element_demos/vanilla_js; ./build_and_deploy.sh
