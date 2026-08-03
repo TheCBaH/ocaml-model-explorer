@@ -166,6 +166,104 @@ module GraphNodeConfig = struct
     |> Jsont.Object.finish
 end
 
+(** Node attribute value types. *)
+module NodeAttributeValueType = struct
+  type t = NodeIds | NodeWithAttrs
+
+  let to_string = function NodeIds -> "node_ids" | NodeWithAttrs -> "node_with_attrs"
+
+  let of_string = function
+    | "node_ids" -> NodeIds
+    | "node_with_attrs" -> NodeWithAttrs
+    | s -> failwith ("Unknown node attribute value type: " ^ s)
+
+  let jsont : t Jsont.t = Jsont.map ~dec:of_string ~enc:to_string Jsont.string
+end
+
+(** An item in the `nodes` list of a "node with attrs" node attribute value. *)
+module NodeWithAttrsItem = struct
+  type t = { id : string; attrs : KeyValueList.t }
+
+  let make id attrs = { id; attrs }
+  let create ~id ~attrs = make id attrs
+  let id t = t.id
+  let attrs t = t.attrs
+
+  let jsont =
+    Jsont.Object.map ~kind:"NodeWithAttrsItem" make
+    |> Jsont.Object.mem "id" Jsont.string ~enc:id
+    |> Jsont.Object.mem "attrs" KeyValueList.jsont ~enc:attrs
+    |> Jsont.Object.finish
+end
+
+(** A single node attribute value: either a plain string, a "node ids" value (clicking on a node id jumps to the
+    corresponding node in the graph), or a "node with attrs" value. *)
+module NodeAttributeValue = struct
+  type t = Str of string | NodeIds of string list | NodeWithAttrs of NodeWithAttrsItem.t list
+
+  let node_ids_obj =
+    Jsont.Object.map ~kind:"NodeIdsNodeAttributeValue" Fun.id
+    |> Jsont.Object.mem "nodeIds" (Jsont.list Jsont.string) ~enc:Fun.id
+    |> Jsont.Object.finish
+
+  let node_with_attrs_obj =
+    Jsont.Object.map ~kind:"NodesWithAttributeValues" Fun.id
+    |> Jsont.Object.mem "nodes" (Jsont.list NodeWithAttrsItem.jsont) ~enc:Fun.id
+    |> Jsont.Object.finish
+
+  let node_ids_case = Jsont.Object.Case.map NodeAttributeValueType.NodeIds node_ids_obj ~dec:(fun ids -> NodeIds ids)
+
+  let node_with_attrs_case =
+    Jsont.Object.Case.map NodeAttributeValueType.NodeWithAttrs node_with_attrs_obj ~dec:(fun nodes ->
+        NodeWithAttrs nodes)
+
+  let enc_case = function
+    | NodeIds ids -> Jsont.Object.Case.value node_ids_case ids
+    | NodeWithAttrs nodes -> Jsont.Object.Case.value node_with_attrs_case nodes
+    | Str _ -> invalid_arg "NodeAttributeValue.enc_case: not an object case"
+
+  let cases = Jsont.Object.Case.[ make node_ids_case; make node_with_attrs_case ]
+
+  let object_jsont =
+    Jsont.Object.map ~kind:"SpecialNodeAttributeValue" Fun.id
+    |> Jsont.Object.case_mem "type" NodeAttributeValueType.jsont ~enc:Fun.id ~enc_case cases
+    |> Jsont.Object.finish
+
+  let string_jsont : t Jsont.t =
+    Jsont.map ~kind:"string"
+      ~dec:(fun s -> Str s)
+      ~enc:(function Str s -> s | _ -> invalid_arg "NodeAttributeValue: not a string")
+      Jsont.string
+
+  let jsont =
+    Jsont.any ~kind:"NodeAttributeValue" ~dec_string:string_jsont ~dec_object:object_jsont
+      ~enc:(function Str _ -> string_jsont | NodeIds _ | NodeWithAttrs _ -> object_jsont)
+      ()
+end
+
+(** A single node attribute. *)
+module NodeAttribute = struct
+  type t = { key : string; value : NodeAttributeValue.t }
+
+  let make key value = { key; value }
+  let create ~key ~value = make key value
+  let key t = t.key
+  let value t = t.value
+
+  let jsont =
+    Jsont.Object.map ~kind:"NodeAttribute" make
+    |> Jsont.Object.mem "key" Jsont.string ~enc:key
+    |> Jsont.Object.mem "value" NodeAttributeValue.jsont ~enc:value
+    |> Jsont.Object.finish
+end
+
+(** A list of node attributes. *)
+module NodeAttributeList = struct
+  type t = NodeAttribute.t list
+
+  let jsont = Jsont.list NodeAttribute.jsont
+end
+
 (** A single node in the graph. *)
 module GraphNode = struct
   type t = {
@@ -179,7 +277,7 @@ module GraphNode = struct
         (** Ids of subgraphs that this node goes into. The graphs referenced here should be the ones from the `graphs`
             field in `GraphList`. Once set, users will be able to click this node, pick a subgraph from a drop-down
             list, and see the visualization for the selected subgraph. *)
-    attrs : KeyValueList.t option;  (** The attributes of the node. *)
+    attrs : NodeAttributeList.t option;  (** The attributes of the node. *)
     incomingEdges : IncomingEdge.t list option;  (** A list of incoming edges. *)
     inputsMetadata : MetadataItem.t list option;  (** Metadata for inputs. *)
     outputsMetadata : MetadataItem.t list option;  (** Metadata for outputs. *)
@@ -229,7 +327,7 @@ module GraphNode = struct
     |> Jsont.Object.mem "label" Jsont.string ~enc:label
     |> Jsont.Object.mem "namespace" Jsont.string ~enc:namespace
     |> Jsont.Object.opt_mem "subgraphIds" (Jsont.list Jsont.string) ~enc:subgraphIds
-    |> Jsont.Object.opt_mem "attrs" KeyValueList.jsont ~enc:attrs
+    |> Jsont.Object.opt_mem "attrs" NodeAttributeList.jsont ~enc:attrs
     |> Jsont.Object.opt_mem "incomingEdges" (Jsont.list IncomingEdge.jsont) ~enc:incomingEdges
     |> Jsont.Object.opt_mem "inputsMetadata" (Jsont.list MetadataItem.jsont) ~enc:inputsMetadata
     |> Jsont.Object.opt_mem "outputsMetadata" (Jsont.list MetadataItem.jsont) ~enc:outputsMetadata
@@ -294,18 +392,22 @@ module GroupNodeAttributes = struct
       (Jsont.Object.as_string_map ~kind:"GroupNamespaceAttributes" Jsont.string)
 end
 
-(** The layout direction of a group node. *)
+(** The layout direction of a group node.
+
+    This is a numeric enum on the JS side (`TOP_BOTTOM = 0`, `LEFT_RIGHT = 1`), so it is serialized as an integer, not
+    as a string. *)
 module LayoutDirection = struct
   type t = TopBottom | LeftRight
 
-  let to_string = function TopBottom -> "TOP_BOTTOM" | LeftRight -> "LEFT_RIGHT"
+  let to_int = function TopBottom -> 0 | LeftRight -> 1
 
-  let of_string = function
-    | "TOP_BOTTOM" -> TopBottom
-    | "LEFT_RIGHT" -> LeftRight
-    | s -> failwith ("Unknown layout direction: " ^ s)
+  let of_int = function
+    | 0 -> TopBottom
+    | 1 -> LeftRight
+    | n -> failwith ("Unknown layout direction: " ^ string_of_int n)
 
-  let jsont : t Jsont.t = Jsont.map ~dec:of_string ~enc:to_string Jsont.string
+  let jsont : t Jsont.t =
+    Jsont.map ~dec:(fun n -> of_int (int_of_float n)) ~enc:(fun t -> float_of_int (to_int t)) Jsont.number
 end
 
 (** Custom configs for group nodes. *)
@@ -546,58 +648,76 @@ module Graph = struct
     groupNodeAttributes : GroupNodeAttributes.t option;
         (** Attributes for group nodes. Displayed in the side panel when the group is selected. *)
     groupNodeConfigs : GroupNodeConfig.t list option;  (** Custom configs for group nodes. *)
+    nodeLabelsToHide : string list option;
+        (** A list of labels. Nodes whose label matches any label in the list (case-insensitive) will be hidden from the
+            visualization. *)
     tasksData : TasksData.t option;  (** Data for various tasks such as edge overlays. *)
     layoutConfigs : LayoutConfigs.t option;  (** Layout-related options. *)
     (* The following fields are set by model explorer internally. *)
     subGraphIds : string list option;  (** The ids of all its subgraphs. *)
     parentGraphIds : string list option;  (** The ids of its parent graphs. *)
+    modelPath : string option;  (** The absolute path of the model that generates this graph. *)
+    adapterId : string option;  (** The id of the adapter that generates this graph. *)
   }
 
-  let make id collectionLabel nodes groupNodeAttributes groupNodeConfigs tasksData layoutConfigs subGraphIds
-      parentGraphIds =
+  let make id collectionLabel nodes groupNodeAttributes groupNodeConfigs nodeLabelsToHide tasksData layoutConfigs
+      subGraphIds parentGraphIds modelPath adapterId =
     {
       id;
       collectionLabel;
       nodes;
       groupNodeAttributes;
       groupNodeConfigs;
+      nodeLabelsToHide;
       tasksData;
       layoutConfigs;
       subGraphIds;
       parentGraphIds;
+      modelPath;
+      adapterId;
     }
 
-  let create ~id ~nodes ?collectionLabel ?groupNodeAttributes ?groupNodeConfigs ?tasksData ?layoutConfigs ?subGraphIds
-      ?parentGraphIds () =
-    make id collectionLabel nodes groupNodeAttributes groupNodeConfigs tasksData layoutConfigs subGraphIds
-      parentGraphIds
+  let create ~id ~nodes ?collectionLabel ?groupNodeAttributes ?groupNodeConfigs ?nodeLabelsToHide ?tasksData
+      ?layoutConfigs ?subGraphIds ?parentGraphIds ?modelPath ?adapterId () =
+    make id collectionLabel nodes groupNodeAttributes groupNodeConfigs nodeLabelsToHide tasksData layoutConfigs
+      subGraphIds parentGraphIds modelPath adapterId
 
-  (** [create ~id ~nodes ?collectionLabel ?groupNodeAttributes ?groupNodeConfigs ?tasksData ?layoutConfigs ?subGraphIds
-       ?parentGraphIds ()] creates a new graph.
+  (** [create ~id ~nodes ?collectionLabel ?groupNodeAttributes ?groupNodeConfigs ?nodeLabelsToHide ?tasksData
+       ?layoutConfigs ?subGraphIds ?parentGraphIds ?modelPath ?adapterId ()] creates a new graph.
       @param id The id of the graph.
       @param nodes A list of nodes in the graph.
       @param collectionLabel The label of the collection this graph belongs to. This field will be set internally.
       @param groupNodeAttributes Attributes for group nodes. Displayed in the side panel when the group is selected.
       @param groupNodeConfigs Custom configs for group nodes.
+      @param nodeLabelsToHide
+        A list of labels. Nodes whose label matches any label in the list (case-insensitive) will be hidden from the
+        visualization.
       @param tasksData Data for various tasks such as edge overlays.
       @param layoutConfigs Layout-related options.
       @param subGraphIds The ids of all its subgraphs.
       @param parentGraphIds The ids of its parent graphs.
+      @param modelPath The absolute path of the model that generates this graph.
+      @param adapterId The id of the adapter that generates this graph.
       @return A new graph.
 
       The following fields are set by model explorer internally.
       - subGraphIds : The ids of all its subgraphs.
-      - parentGraphIds : The ids of its parent graphs. *)
+      - parentGraphIds : The ids of its parent graphs.
+      - modelPath : The absolute path of the model that generates this graph.
+      - adapterId : The id of the adapter that generates this graph. *)
 
   let id t = t.id
   let collectionLabel t = t.collectionLabel
   let nodes t = t.nodes
   let groupNodeAttributes t = t.groupNodeAttributes
   let groupNodeConfigs t = t.groupNodeConfigs
+  let nodeLabelsToHide t = t.nodeLabelsToHide
   let tasksData t = t.tasksData
   let layoutConfigs t = t.layoutConfigs
   let subGraphIds t = t.subGraphIds
   let parentGraphIds t = t.parentGraphIds
+  let modelPath t = t.modelPath
+  let adapterId t = t.adapterId
 
   let jsont =
     Jsont.Object.map ~kind:"Graph" make
@@ -606,11 +726,34 @@ module Graph = struct
     |> Jsont.Object.mem "nodes" (Jsont.list GraphNode.jsont) ~enc:nodes
     |> Jsont.Object.opt_mem "groupNodeAttributes" GroupNodeAttributes.jsont ~enc:groupNodeAttributes
     |> Jsont.Object.opt_mem "groupNodeConfigs" (Jsont.list GroupNodeConfig.jsont) ~enc:groupNodeConfigs
+    |> Jsont.Object.opt_mem "nodeLabelsToHide" (Jsont.list Jsont.string) ~enc:nodeLabelsToHide
     |> Jsont.Object.opt_mem "tasksData" TasksData.jsont ~enc:tasksData
     |> Jsont.Object.opt_mem "layoutConfigs" LayoutConfigs.jsont ~enc:layoutConfigs
     |> Jsont.Object.opt_mem "subGraphIds" (Jsont.list Jsont.string) ~enc:subGraphIds
     |> Jsont.Object.opt_mem "parentGraphIds" (Jsont.list Jsont.string) ~enc:parentGraphIds
+    |> Jsont.Object.opt_mem "modelPath" Jsont.string ~enc:modelPath
+    |> Jsont.Object.opt_mem "adapterId" Jsont.string ~enc:adapterId
     |> Jsont.Object.finish
+end
+
+(** The sorting of the graphs in a collection. *)
+module GraphSorting = struct
+  type t = NodeCountAsc | NodeCountDesc | NameAsc | NameDesc
+
+  let to_string = function
+    | NodeCountAsc -> "node_count_asc"
+    | NodeCountDesc -> "node_count_desc"
+    | NameAsc -> "name_asc"
+    | NameDesc -> "name_desc"
+
+  let of_string = function
+    | "node_count_asc" -> NodeCountAsc
+    | "node_count_desc" -> NodeCountDesc
+    | "name_asc" -> NameAsc
+    | "name_desc" -> NameDesc
+    | s -> failwith ("Unknown graph sorting: " ^ s)
+
+  let jsont : t Jsont.t = Jsont.map ~dec:of_string ~enc:to_string Jsont.string
 end
 
 (** A collection of graphs. This is the input to the visualizer. *)
@@ -618,22 +761,26 @@ module GraphCollection = struct
   type t = {
     label : string;  (** The label of the collection. *)
     graphs : Graph.t list;  (** The graphs inside the collection. *)
+    graphSorting : GraphSorting.t option;  (** The sorting of the graphs. Default to GraphSorting.NODE_COUNT_DESC. *)
   }
 
-  let make label graphs = { label; graphs }
+  let make label graphs graphSorting = { label; graphs; graphSorting }
 
-  (** [create ~label ~graphs] creates a new graph collection.
+  (** [create ~label ~graphs ?graphSorting ()] creates a new graph collection.
       @param label The label of the collection.
       @param graphs The graphs inside the collection.
+      @param graphSorting The sorting of the graphs. Default to GraphSorting.NODE_COUNT_DESC.
       @return A new graph collection. *)
-  let create ~label ~graphs = make label graphs
+  let create ~label ~graphs ?graphSorting () = make label graphs graphSorting
 
   let label t = t.label
   let graphs t = t.graphs
+  let graphSorting t = t.graphSorting
 
   let jsont =
     Jsont.Object.map ~kind:"GraphCollection" make
     |> Jsont.Object.mem "label" Jsont.string ~enc:label
     |> Jsont.Object.mem "graphs" (Jsont.list Graph.jsont) ~enc:graphs
+    |> Jsont.Object.opt_mem "graphSorting" GraphSorting.jsont ~enc:graphSorting
     |> Jsont.Object.finish
 end

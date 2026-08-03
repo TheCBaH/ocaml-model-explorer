@@ -133,7 +133,7 @@ let%expect_test "graphNode minimal" =
   ()
 
 let%expect_test "graphNode with optional fields" =
-  let attrs = [ KeyValue.create ~key:"attr1" ~value:"val1" ] in
+  let attrs = [ NodeAttribute.create ~key:"attr1" ~value:(NodeAttributeValue.Str "val1") ] in
   let incomingEdges =
     [ IncomingEdge.create ~sourceNodeId:"prevNode" ~sourceNodeOutputId:"out0" ~targetNodeInputId:"in0" () ]
   in
@@ -196,6 +196,139 @@ let%expect_test "graphNode with optional fields" =
           "pinToGroupTop": true
         }
       } |}];
+  ()
+
+let%expect_test "nodeAttributeValue string" =
+  let attr = NodeAttribute.create ~key:"dtype" ~value:(NodeAttributeValue.Str "float32") in
+  let json = Result.get_ok @@ encode_string NodeAttribute.jsont attr in
+  print_string json;
+  [%expect {| {"key":"dtype","value":"float32"} |}];
+  ()
+
+let%expect_test "nodeAttributeValue node_ids" =
+  let attr = NodeAttribute.create ~key:"producers" ~value:(NodeAttributeValue.NodeIds [ "node1"; "node2" ]) in
+  let json = Result.get_ok @@ encode_string ~format:Jsont.Indent NodeAttribute.jsont attr in
+  print_string json;
+  [%expect
+    {|
+    {
+      "key": "producers",
+      "value": {
+        "type": "node_ids",
+        "nodeIds": [
+          "node1",
+          "node2"
+        ]
+      }
+    } |}];
+  ()
+
+let%expect_test "nodeAttributeValue node_with_attrs" =
+  let nodes = [ NodeWithAttrsItem.create ~id:"node1" ~attrs:[ KeyValue.create ~key:"shape" ~value:"[1, 10]" ] ] in
+  let attr = NodeAttribute.create ~key:"related" ~value:(NodeAttributeValue.NodeWithAttrs nodes) in
+  let json = Result.get_ok @@ encode_string ~format:Jsont.Indent NodeAttribute.jsont attr in
+  print_string json;
+  [%expect
+    {|
+    {
+      "key": "related",
+      "value": {
+        "type": "node_with_attrs",
+        "nodes": [
+          {
+            "id": "node1",
+            "attrs": [
+              {
+                "key": "shape",
+                "value": "[1, 10]"
+              }
+            ]
+          }
+        ]
+      }
+    } |}];
+  ()
+
+let%expect_test "nodeAttributeValue roundtrip" =
+  let attrs =
+    [
+      NodeAttribute.create ~key:"a" ~value:(NodeAttributeValue.Str "s");
+      NodeAttribute.create ~key:"b" ~value:(NodeAttributeValue.NodeIds [ "n1" ]);
+      NodeAttribute.create ~key:"c"
+        ~value:(NodeAttributeValue.NodeWithAttrs [ NodeWithAttrsItem.create ~id:"n2" ~attrs:[] ]);
+    ]
+  in
+  let json = Result.get_ok @@ encode_string NodeAttributeList.jsont attrs in
+  let decoded = Result.get_ok @@ decode_string NodeAttributeList.jsont json in
+  Printf.printf "%b" (attrs = decoded);
+  [%expect {| true |}];
+  ()
+
+let%expect_test "groupNodeConfig layoutDirection" =
+  let top_bottom = GroupNodeConfig.create ~namespaceRegex:"a/.*" ~layoutDirection:LayoutDirection.TopBottom () in
+  let left_right = GroupNodeConfig.create ~namespaceRegex:"b/.*" ~layoutDirection:LayoutDirection.LeftRight () in
+  print_string (Result.get_ok @@ encode_string GroupNodeConfig.jsont top_bottom);
+  print_newline ();
+  print_string (Result.get_ok @@ encode_string GroupNodeConfig.jsont left_right);
+  [%expect {|
+    {"namespaceRegex":"a/.*","layoutDirection":0}
+    {"namespaceRegex":"b/.*","layoutDirection":1} |}];
+  ()
+
+let%expect_test "graph nodeLabelsToHide and internal fields" =
+  let nodes = [ GraphNode.create ~id:"node1" ~label:"Node One" ~namespace:"a/b" () ] in
+  let graph =
+    Graph.create ~id:"graph1" ~nodes ~nodeLabelsToHide:[ "Const"; "Identity" ] ~modelPath:"/tmp/model.tflite"
+      ~adapterId:"tflite_direct" ()
+  in
+  let json = Result.get_ok @@ encode_string ~format:Jsont.Indent Graph.jsont graph in
+  print_string json;
+  [%expect
+    {|
+    {
+      "id": "graph1",
+      "nodes": [
+        {
+          "id": "node1",
+          "label": "Node One",
+          "namespace": "a/b"
+        }
+      ],
+      "nodeLabelsToHide": [
+        "Const",
+        "Identity"
+      ],
+      "modelPath": "/tmp/model.tflite",
+      "adapterId": "tflite_direct"
+    } |}];
+  ()
+
+let%expect_test "graphCollection graphSorting" =
+  let nodes = [ GraphNode.create ~id:"node1" ~label:"Node One" ~namespace:"a/b" () ] in
+  let graph = Graph.create ~id:"graph1" ~nodes () in
+  let collection =
+    GraphCollection.create ~label:"My Collection" ~graphs:[ graph ] ~graphSorting:GraphSorting.NameAsc ()
+  in
+  let json = Result.get_ok @@ encode_string ~format:Jsont.Indent GraphCollection.jsont collection in
+  print_string json;
+  [%expect
+    {|
+    {
+      "label": "My Collection",
+      "graphs": [
+        {
+          "id": "graph1",
+          "nodes": [
+            {
+              "id": "node1",
+              "label": "Node One",
+              "namespace": "a/b"
+            }
+          ]
+        }
+      ],
+      "graphSorting": "name_asc"
+    } |}];
   ()
 
 let%expect_test "groupNodeAttributes" =
@@ -287,7 +420,7 @@ let%expect_test "graph with optional fields" =
 let%expect_test "graphCollection minimal" =
   let nodes = [ GraphNode.create ~id:"node1" ~label:"Node One" ~namespace:"a/b" () ] in
   let graph = Graph.create ~id:"graph1" ~nodes () in
-  let collection = GraphCollection.create ~label:"My Collection" ~graphs:[ graph ] in
+  let collection = GraphCollection.create ~label:"My Collection" ~graphs:[ graph ] () in
   let json = Result.get_ok @@ encode_string ~format:Jsont.Indent GraphCollection.jsont collection in
   print_string json;
   [%expect
@@ -314,7 +447,7 @@ let%expect_test "graphCollection with optional fields" =
   let graph1 = Graph.create ~id:"graph1" ~nodes:nodes1 () in
   let nodes2 = [ GraphNode.create ~id:"node2" ~label:"Node Two" ~namespace:"c" () ] in
   let graph2 = Graph.create ~id:"graph2" ~nodes:nodes2 () in
-  let collection = GraphCollection.create ~label:"My Collection 2" ~graphs:[ graph1; graph2 ] in
+  let collection = GraphCollection.create ~label:"My Collection 2" ~graphs:[ graph1; graph2 ] () in
   let json = Result.get_ok @@ encode_string ~format:Jsont.Indent GraphCollection.jsont collection in
   print_string json;
   [%expect
