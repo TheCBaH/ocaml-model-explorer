@@ -27,7 +27,7 @@
   },
   "homepage": "https://github.com/TheCBaH/ocaml-model-explorer#readme",
   "devDependencies": {
-    "@playwright/test": "^1.62.0",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^26.1.2"
   }
 }
