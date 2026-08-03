@@ -532,7 +532,7 @@ module EdgeOverlay = struct
     edgeLabelFontSize : float option;  (** The font size of the edge labels. *)
     showEdgesConnectedToSelectedNodeOnly : bool option;
         (** If true, only edges connected to the currently selected node will be displayed. *)
-    visibleEdgeHops : float option;  (** The range of edges to show around the selected node. *)
+    visibleEdgeHops : int option;  (** The range of edges to show around the selected node. *)
   }
 
   let make name edges edgeColor edgeWidth edgeLabelFontSize showEdgesConnectedToSelectedNodeOnly visibleEdgeHops =
@@ -569,7 +569,7 @@ module EdgeOverlay = struct
     |> Jsont.Object.opt_mem "edgeWidth" Jsont.number ~enc:edgeWidth
     |> Jsont.Object.opt_mem "edgeLabelFontSize" Jsont.number ~enc:edgeLabelFontSize
     |> Jsont.Object.opt_mem "showEdgesConnectedToSelectedNodeOnly" Jsont.bool ~enc:showEdgesConnectedToSelectedNodeOnly
-    |> Jsont.Object.opt_mem "visibleEdgeHops" Jsont.number ~enc:visibleEdgeHops
+    |> Jsont.Object.opt_mem "visibleEdgeHops" Jsont.int ~enc:visibleEdgeHops
     |> Jsont.Object.finish
 end
 
@@ -642,7 +642,7 @@ end
 module Graph = struct
   type t = {
     id : string;  (** The id of the graph. *)
-    subgraphIndex : float option;  (** The optional index of the subgraph. *)
+    subgraphIndex : int option;  (** The optional index of the subgraph. *)
     collectionLabel : string option;
         (** The label of the collection this graph belongs to. This field will be set internally. *)
     nodes : GraphNode.t list;  (** A list of nodes in the graph. *)
@@ -726,7 +726,7 @@ module Graph = struct
   let jsont =
     Jsont.Object.map ~kind:"Graph" make
     |> Jsont.Object.mem "id" Jsont.string ~enc:id
-    |> Jsont.Object.opt_mem "subgraphIndex" Jsont.number ~enc:subgraphIndex
+    |> Jsont.Object.opt_mem "subgraphIndex" Jsont.int ~enc:subgraphIndex
     |> Jsont.Object.opt_mem "collectionLabel" Jsont.string ~enc:collectionLabel
     |> Jsont.Object.mem "nodes" (Jsont.list GraphNode.jsont) ~enc:nodes
     |> Jsont.Object.opt_mem "groupNodeAttributes" GroupNodeAttributes.jsont ~enc:groupNodeAttributes

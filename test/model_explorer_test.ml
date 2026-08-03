@@ -305,7 +305,7 @@ let%expect_test "graph nodeLabelsToHide and internal fields" =
 
 let%expect_test "graph subgraphIndex" =
   let nodes = [ GraphNode.create ~id:"node1" ~label:"Node One" ~namespace:"a/b" () ] in
-  let graph = Graph.create ~id:"graph1" ~nodes ~subgraphIndex:1. () in
+  let graph = Graph.create ~id:"graph1" ~nodes ~subgraphIndex:1 () in
   let json = Result.get_ok @@ encode_string ~format:Jsont.Indent Graph.jsont graph in
   print_string json;
   [%expect
@@ -496,5 +496,29 @@ let%expect_test "graphCollection with optional fields" =
           ]
         }
       ]
+    } |}];
+  ()
+
+let%expect_test "edgeOverlay visibleEdgeHops" =
+  let edges = [ Edge.create ~sourceNodeId:"node1" ~targetNodeId:"node2" () ] in
+  let overlay =
+    EdgeOverlay.create ~name:"My Overlay" ~edges ~edgeColor:"red" ~visibleEdgeHops:2
+      ~showEdgesConnectedToSelectedNodeOnly:true ()
+  in
+  let json = Result.get_ok @@ encode_string ~format:Jsont.Indent EdgeOverlay.jsont overlay in
+  print_string json;
+  [%expect
+    {|
+    {
+      "name": "My Overlay",
+      "edges": [
+        {
+          "sourceNodeId": "node1",
+          "targetNodeId": "node2"
+        }
+      ],
+      "edgeColor": "red",
+      "showEdgesConnectedToSelectedNodeOnly": true,
+      "visibleEdgeHops": 2
     } |}];
   ()
