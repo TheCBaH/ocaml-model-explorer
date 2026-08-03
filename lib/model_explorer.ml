@@ -642,6 +642,7 @@ end
 module Graph = struct
   type t = {
     id : string;  (** The id of the graph. *)
+    subgraphIndex : float option;  (** The optional index of the subgraph. *)
     collectionLabel : string option;
         (** The label of the collection this graph belongs to. This field will be set internally. *)
     nodes : GraphNode.t list;  (** A list of nodes in the graph. *)
@@ -660,10 +661,11 @@ module Graph = struct
     adapterId : string option;  (** The id of the adapter that generates this graph. *)
   }
 
-  let make id collectionLabel nodes groupNodeAttributes groupNodeConfigs nodeLabelsToHide tasksData layoutConfigs
-      subGraphIds parentGraphIds modelPath adapterId =
+  let make id subgraphIndex collectionLabel nodes groupNodeAttributes groupNodeConfigs nodeLabelsToHide tasksData
+      layoutConfigs subGraphIds parentGraphIds modelPath adapterId =
     {
       id;
+      subgraphIndex;
       collectionLabel;
       nodes;
       groupNodeAttributes;
@@ -677,15 +679,16 @@ module Graph = struct
       adapterId;
     }
 
-  let create ~id ~nodes ?collectionLabel ?groupNodeAttributes ?groupNodeConfigs ?nodeLabelsToHide ?tasksData
-      ?layoutConfigs ?subGraphIds ?parentGraphIds ?modelPath ?adapterId () =
-    make id collectionLabel nodes groupNodeAttributes groupNodeConfigs nodeLabelsToHide tasksData layoutConfigs
-      subGraphIds parentGraphIds modelPath adapterId
+  let create ~id ~nodes ?subgraphIndex ?collectionLabel ?groupNodeAttributes ?groupNodeConfigs ?nodeLabelsToHide
+      ?tasksData ?layoutConfigs ?subGraphIds ?parentGraphIds ?modelPath ?adapterId () =
+    make id subgraphIndex collectionLabel nodes groupNodeAttributes groupNodeConfigs nodeLabelsToHide tasksData
+      layoutConfigs subGraphIds parentGraphIds modelPath adapterId
 
-  (** [create ~id ~nodes ?collectionLabel ?groupNodeAttributes ?groupNodeConfigs ?nodeLabelsToHide ?tasksData
-       ?layoutConfigs ?subGraphIds ?parentGraphIds ?modelPath ?adapterId ()] creates a new graph.
+  (** [create ~id ~nodes ?subgraphIndex ?collectionLabel ?groupNodeAttributes ?groupNodeConfigs ?nodeLabelsToHide
+       ?tasksData ?layoutConfigs ?subGraphIds ?parentGraphIds ?modelPath ?adapterId ()] creates a new graph.
       @param id The id of the graph.
       @param nodes A list of nodes in the graph.
+      @param subgraphIndex The optional index of the subgraph.
       @param collectionLabel The label of the collection this graph belongs to. This field will be set internally.
       @param groupNodeAttributes Attributes for group nodes. Displayed in the side panel when the group is selected.
       @param groupNodeConfigs Custom configs for group nodes.
@@ -707,6 +710,7 @@ module Graph = struct
       - adapterId : The id of the adapter that generates this graph. *)
 
   let id t = t.id
+  let subgraphIndex t = t.subgraphIndex
   let collectionLabel t = t.collectionLabel
   let nodes t = t.nodes
   let groupNodeAttributes t = t.groupNodeAttributes
@@ -722,6 +726,7 @@ module Graph = struct
   let jsont =
     Jsont.Object.map ~kind:"Graph" make
     |> Jsont.Object.mem "id" Jsont.string ~enc:id
+    |> Jsont.Object.opt_mem "subgraphIndex" Jsont.number ~enc:subgraphIndex
     |> Jsont.Object.opt_mem "collectionLabel" Jsont.string ~enc:collectionLabel
     |> Jsont.Object.mem "nodes" (Jsont.list GraphNode.jsont) ~enc:nodes
     |> Jsont.Object.opt_mem "groupNodeAttributes" GroupNodeAttributes.jsont ~enc:groupNodeAttributes

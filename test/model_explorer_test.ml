@@ -303,6 +303,26 @@ let%expect_test "graph nodeLabelsToHide and internal fields" =
     } |}];
   ()
 
+let%expect_test "graph subgraphIndex" =
+  let nodes = [ GraphNode.create ~id:"node1" ~label:"Node One" ~namespace:"a/b" () ] in
+  let graph = Graph.create ~id:"graph1" ~nodes ~subgraphIndex:1. () in
+  let json = Result.get_ok @@ encode_string ~format:Jsont.Indent Graph.jsont graph in
+  print_string json;
+  [%expect
+    {|
+    {
+      "id": "graph1",
+      "subgraphIndex": 1,
+      "nodes": [
+        {
+          "id": "node1",
+          "label": "Node One",
+          "namespace": "a/b"
+        }
+      ]
+    } |}];
+  ()
+
 let%expect_test "graphCollection graphSorting" =
   let nodes = [ GraphNode.create ~id:"node1" ~label:"Node One" ~namespace:"a/b" () ] in
   let graph = Graph.create ~id:"graph1" ~nodes () in
