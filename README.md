@@ -5,7 +5,7 @@
 OCaml mapping of graph definition used by the [model-explorer](https://github.com/google-ai-edge/model-explorer)
 
 ## Get started
-* [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=master&repo=965808224)
+* [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=965808224)
 * run
   * `make runtest` build and run test for OCaml binding
   * `npx playwright test` render test graph in browser compare with pre-rendered screenshot
