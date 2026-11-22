@@ -25,6 +25,8 @@ jobs:
       run:  ${{ env.EXEC }} make runtest
     - name: Format
       run:  ${{ env.EXEC }} make format
+    - name: Check installed module namespace
+      run:  ${{ env.EXEC }} make namespace-check
     - name: Install dependencies
       run:  ${{ env.EXEC }} npm ci
     - name: Check Playwright version
